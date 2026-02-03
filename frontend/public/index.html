@@ -4,133 +4,59 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#000000" />
-
-        <!-- Updated meta description -->
-        <meta
-            name="description"
-            content="SmartPlate - Reducing Hunger Through Food Redistribution"
-        />
-
-        <!-- Updated title -->
+        <meta name="description" content="SmartPlate - Reducing Hunger Through Food Redistribution" />
         <title>SmartPlate - Food Redistribution Platform</title>
         
-        <!-- Leaflet CSS -->
+        <!-- Leaflet CSS (ONCE ONLY) -->
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        
+        <!-- SmartPlate Map Styles -->
         <style>
-            #map { height: 400px; width: 100%; margin: 20px 0; }
-            #findNearestBtn { 
-                background: #28a745; color: white; 
-                border: none; padding: 10px 20px; 
-                border-radius: 5px; cursor: pointer; 
-                font-size: 16px; margin: 10px 0;
+            #smartplate-map { 
+                height: 500px; width: 100%; 
+                border-radius: 12px; 
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                border: 2px solid #e1f5fe;
+                margin: 20px auto;
+                max-width: 1200px;
             }
-            #findNearestBtn:hover { background: #218838; }
-            #matches { margin-top: 10px; }
+            .smartplate-btn { 
+                background: linear-gradient(135deg, #28a745, #20c997);
+                color: white; border: none; 
+                padding: 12px 24px; border-radius: 25px; 
+                cursor: pointer; font-size: 16px; font-weight: 600;
+                box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+                transition: all 0.3s ease;
+            }
+            .smartplate-btn:hover { 
+                transform: translateY(-2px); 
+                box-shadow: 0 6px 20px rgba(40,167,69,0.4);
+                background: linear-gradient(135deg, #218838, #1ea085);
+            }
+            .smartplate-matches {
+                background: white; border-radius: 12px; 
+                padding: 20px; margin: 20px auto;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                max-width: 1200px; max-height: 300px; overflow-y: auto;
+            }
+            .leaflet-popup-tip { background: #28a745 !important; }
         </style>
     </head>
-
+    
+    <!-- ✅ NO LINK TAGS HERE - MOVED TO HEAD -->
+    
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
-        <div id="root">
-            <!-- SmartPlate Header -->
-            <h1 style="text-align: center; color: #333;">🍽️ SmartPlate - Food Redistribution</h1>
-            
-            <!-- Find Nearest Button -->
-            <div style="text-align: center;">
-                <button id="findNearestBtn">📍 Find Nearest Food Matches</button>
-                <div id="matches" style="margin-top: 15px;"></div>
-            </div>
-            
-            <!-- Leaflet Map -->
-            <div id="map"></div>
-        </div>
+        <div id="root"></div>  <!-- ✅ React will render HERE -->
 
-        <!-- Leaflet JS -->
+        <!-- Leaflet JS + SmartPlate Logic -->
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        
-        <!-- Posthog Analytics (unchanged) -->
         <script>
-            !(function (t, e) {
-                var o, n, p, r;
-                e.__SV ||
-                    ((window.posthog = e),
-                    (e._i = []),
-                    (e.init = function (i, s, a) {
-                        function g(t, e) {
-                            var o = e.split(".");
-                            2 == o.length && ((t = t[o[0]]), (e = o[1])),
-                                (t[e] = function () {
-                                    t.push(
-                                        [e].concat(
-                                            Array.prototype.slice.call(
-                                                arguments,
-                                                0,
-                                            ),
-                                        ),
-                                    );
-                                });
-                        }
-                        ((p = t.createElement("script")).type =
-                            "text/javascript"),
-                            (p.crossOrigin = "anonymous"),
-                            (p.async = !0),
-                            (p.src =
-                                s.api_host.replace(
-                                    ".i.posthog.com",
-                                    "-assets.i.posthog.com",
-                                ) + "/static/array.js"),
-                            (r =
-                                t.getElementsByTagName(
-                                    "script",
-                                )[0]).parentNode.insertBefore(p, r);
-                        var u = e;
-                        for (
-                            void 0 !== a ? (u = e[a] = []) : (a = "posthog"),
-                                u.people = u.people || [],
-                                u.toString = function (t) {
-                                    var e = "posthog";
-                                    return (
-                                        "posthog" !== a && (e += "." + a),
-                                        t || (e += " (stub)"),
-                                        e
-                                    );
-                                },
-                                u.people.toString = function () {
-                                    return u.toString(1) + ".people (stub)";
-                                },
-                                o =
-                                    "init me ws ys ps bs capture je Di ks register register_once register_for_session unregister unregister_for_session Ps getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Es $s createPersonProfile Is opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing Ss debug xs getPageViewId captureTraceFeedback captureTraceMetric".split(
-                                        " ",
-                                    ),
-                                n = 0;
-                            n < o.length;
-                            n++
-                        )
-                            g(u, o[n]);
-                        e._i.push([i, s, a]);
-                    }),
-                    (e.__SV = 1));
-            })(document, window.posthog || []);
-
-            posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs", {
-                api_host: "https://us.i.posthog.com",
-                person_profiles: "identified_only",
-                session_recording: {
-                    recordCrossOriginIframes: true,
-                },
-            });
-        </script>
-
-        <!-- SmartPlate Map Logic -->
-        <script>
-            // Initialize map (Chennai center)
-            let map = L.map('map').setView([13.0827, 80.2707], 11);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-
-            // Sample SmartPlate donations/NGOs (replace with your real data)
-            const locations = [
+            // Global SmartPlate Map Functions (for React dashboards)
+            window.smartplateMapReady = false;
+            
+            // Initialize map utils
+            window.smartplateLocations = [
                 {name: '🍚 Donor: Rice 5kg', lat: 13.05, lng: 80.25, type: 'donor'},
                 {name: '🥛 Donor: Milk 10L', lat: 13.08, lng: 80.28, type: 'donor'},
                 {name: '🥗 NGO Shelter A', lat: 13.07, lng: 80.26, type: 'ngo'},
@@ -138,111 +64,49 @@
                 {name: '🍲 Donor: Veg Curry 3kg', lat: 13.06, lng: 80.27, type: 'donor'},
             ];
 
-            // Haversine distance formula (km)
-            function getDistance(lat1, lng1, lat2, lng2) {
-                const R = 6371; // Earth radius in km
+            window.getDistance = (lat1, lng1, lat2, lng2) => {
+                const R = 6371;
                 const dLat = (lat2 - lat1) * Math.PI / 180;
                 const dLng = (lng2 - lng1) * Math.PI / 180;
-                const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
+                const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * 
+                         Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
                 return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            }
+            };
 
-            // Find nearest matches
-            function findNearest(userLat, userLng, maxDist = 20) {
-                const matches = locations
+            window.findNearestMatches = (userLat, userLng, mapId = 'smartplate-map') => {
+                const map = window.L.map(mapId);
+                window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                map.setView([13.0827, 80.2707], 11);
+                
+                const matches = window.smartplateLocations
                     .map(loc => {
-                        const dist = getDistance(userLat, userLng, loc.lat, loc.lng);
-                        return dist < maxDist ? { ...loc, dist: dist.toFixed(1) } : null;
+                        const dist = window.getDistance(userLat, userLng, loc.lat, loc.lng);
+                        return dist < 20 ? { ...loc, dist: dist.toFixed(1) } : null;
                     })
                     .filter(Boolean)
-                    .sort((a, b) => a.dist - b.dist)
-                    .slice(0, 5); // Top 5 nearest
+                    .sort((a, b) => a.dist - b.dist);
 
-                // Clear previous markers
-                map.eachLayer(layer => {
-                    if (layer instanceof L.Marker) map.removeLayer(layer);
+                matches.forEach(match => {
+                    const color = match.type === 'donor' ? '#28a745' : '#ffc107';
+                    window.L.circleMarker([match.lat, match.lng], {
+                        radius: 10, fillColor: color, color: '#000', weight: 2, fillOpacity: 0.8
+                    }).addTo(map).bindPopup(`<b>${match.name}</b><br>📏 ${match.dist}km`);
                 });
+                
+                window.smartplateMapReady = true;
+                return matches;
+            };
 
-                // Add markers for matches
-                matches.forEach((match, index) => {
-                    const color = match.type === 'donor' ? 'green' : 'orange';
-                    L.circleMarker([match.lat, match.lng], {
-                        radius: 8,
-                        fillColor: color,
-                        color: '#000',
-                        weight: 2,
-                        opacity: 1,
-                        fillOpacity: 0.8
-                    })
-                    .addTo(map)
-                    .bindPopup(`
-                        <b>${match.name}</b><br>
-                        📏 Distance: ${match.dist} km<br>
-                        <button onclick="claimMatch('${match.name}')" style="padding:5px 10px; background:#007bff; color:white; border:none; border-radius:3px; cursor:pointer;">Claim Food</button>
-                    `).openPopup();
-                });
+            window.claimFood = (foodName) => {
+                alert(`✅ Claimed: ${foodName}`);
+                if (window.posthog) window.posthog.capture('food_claimed', { food: foodName });
+            };
+        </script>
 
-                // Show matches list
-                const matchesDiv = document.getElementById('matches');
-                matchesDiv.innerHTML = `
-                    <h3>📋 Nearest Matches Found: ${matches.length}</h3>
-                    ${matches.map((m, i) => 
-                        `<div style="padding:10px; border-left:4px solid ${m.type === 'donor' ? '#28a745' : '#ffc107'}; margin:5px 0; background:#f8f9fa;">
-                            ${i+1}. ${m.name} - ${m.dist}km 
-                            <button onclick="claimMatch('${m.name}')" style="float:right; padding:5px 10px; background:#28a745; color:white; border:none; border-radius:3px; cursor:pointer; font-size:12px;">Claim</button>
-                        </div>`
-                    ).join('')}
-                `;
-
-                // Fit map to show all matches
-                if (matches.length > 0) {
-                    const group = new L.featureGroup(matches.map(m => 
-                        L.circleMarker([m.lat, m.lng])
-                    ));
-                    map.fitBounds(group.getBounds().pad(0.2));
-                }
-            }
-
-            // Claim food function
-            function claimMatch(foodName) {
-                alert(`✅ Claimed: ${foodName}\nFood match confirmed! Check your dashboard.`);
-                posthog.capture('food_claimed', { food: foodName });
-            }
-
-            // Button click handler
-            document.getElementById('findNearestBtn').addEventListener('click', () => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        pos => {
-                            findNearest(pos.coords.latitude, pos.coords.longitude);
-                            document.getElementById('findNearestBtn').textContent = '🔄 Searching...';
-                            setTimeout(() => {
-                                document.getElementById('findNearestBtn').textContent = '📍 Find Nearest Food Matches';
-                            }, 2000);
-                        },
-                        err => {
-                            alert('Please enable location access to find nearest food.');
-                            // Fallback to Chennai center
-                            findNearest(13.0827, 80.2707);
-                        },
-                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-                    );
-                } else {
-                    alert('Geolocation not supported. Using Chennai center.');
-                    findNearest(13.0827, 80.2707);
-                }
-            });
-
-            // Add all locations as markers initially (faded)
-            locations.forEach(loc => {
-                L.circleMarker([loc.lat, loc.lng], {
-                    radius: 4,
-                    fillColor: loc.type === 'donor' ? '#90EE90' : '#FFD700',
-                    color: '#666',
-                    weight: 1,
-                    fillOpacity: 0.4
-                }).addTo(map).bindPopup(loc.name);
-            });
+        <!-- Posthog Analytics -->
+        <script>
+            !(function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify aliases groups track screen".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)})(document,window.posthog||[]);
+            posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs",{api_host:"https://us.i.posthog.com"});
         </script>
     </body>
 </html>
