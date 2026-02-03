@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import '@/App.css';
 import Login from './pages/Login';
@@ -68,6 +68,96 @@ function App() {
     setUser(null);
   };
 
+  // Leaflet Map Utilities (Global - for 1-hour demo)
+  const initMap = useCallback((mapContainerId) => {
+    if (typeof window.L !== 'undefined' && window.L && !window.smartplateMap) {
+      window.smartplateMap = window.L.map(mapContainerId).setView([13.0827, 80.2707], 11);
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(window.smartplateMap);
+
+      // Sample SmartPlate locations (replace with real API data)
+      window.smartplateLocations = [
+        {name: '🍚 Donor: Rice 5kg', lat: 13.05, lng: 80.25, type: 'donor'},
+        {name: '🥛 Donor: Milk 10L', lat: 13.08, lng: 80.28, type: 'donor'},
+        {name: '🥗 NGO Shelter A', lat: 13.07, lng: 80.26, type: 'ngo'},
+        {name: '🍞 NGO Soup Kitchen', lat: 13.09, lng: 80.24, type: 'ngo'},
+        {name: '🍲 Donor: Veg Curry 3kg', lat: 13.06, lng: 80.27, type: 'donor'},
+      ];
+
+      // Haversine distance (km)
+      window.getDistance = (lat1, lng1, lat2, lng2) => {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      };
+
+      // Find nearest matches
+      window.findNearestMatches = (userLat, userLng, maxDist = 20) => {
+        if (!window.smartplateMap) return [];
+        
+        // Clear existing markers
+        window.smartplateMap.eachLayer(layer => {
+          if (layer instanceof window.L.CircleMarker || layer instanceof window.L.Marker) {
+            window.smartplateMap.removeLayer(layer);
+          }
+        });
+
+        const matches = window.smartplateLocations
+          .map(loc => {
+            const dist = window.getDistance(userLat, userLng, loc.lat, loc.lng);
+            return dist < maxDist ? { ...loc, dist: dist.toFixed(1) } : null;
+          })
+          .filter(Boolean)
+          .sort((a, b) => a.dist - b.dist)
+          .slice(0, 5);
+
+        // Add markers
+        matches.forEach(match => {
+          const color = match.type === 'donor' ? '#28a745' : '#ffc107';
+          window.L.circleMarker([match.lat, match.lng], {
+            radius: 8,
+            fillColor: color,
+            color: '#000',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.8
+          })
+          .addTo(window.smartplateMap)
+          .bindPopup(`
+            <b>${match.name}</b><br>
+            📏 ${match.dist}km away<br>
+            <button onclick="window.claimFood('${match.name}')" 
+                    style="padding:5px 10px;background:#28a745;color:white;border:none;border-radius:3px;cursor:pointer;">
+              Claim Food
+            </button>
+          `);
+        });
+
+        if (matches.length > 0) {
+          const group = new window.L.featureGroup(matches.map(m => 
+            window.L.circleMarker([m.lat, m.lng])
+          ));
+          window.smartplateMap.fitBounds(group.getBounds().pad(0.2));
+        }
+
+        return matches;
+      };
+
+      // Claim food handler
+      window.claimFood = (foodName) => {
+        alert(`✅ Claimed: ${foodName}\nFood match confirmed!`);
+        if (window.posthog) {
+          window.posthog.capture('food_claimed', { food: foodName });
+        }
+      };
+
+      console.log('SmartPlate Map initialized');
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F9F7F2]">
@@ -78,6 +168,22 @@ function App() {
 
   return (
     <div className="App">
+      {/* Initialize map on app mount */}
+      <div 
+        id="smartplate-map" 
+        style={{ 
+          height: '400px', 
+          width: '100%', 
+          margin: '20px 0',
+          display: 'none' 
+        }} 
+        ref={(el) => {
+          if (el && !window.smartplateMap) {
+            setTimeout(() => initMap('smartplate-map'), 100);
+          }
+        }}
+      />
+      
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={!user ? <Login onLogin={handleLogin} /> : <Navigate to={`/${user.role}`} />} />
