@@ -11,8 +11,12 @@ export default function AuthCallback({ onLogin }) {
     const userData = urlParams.get('user');
     
     if (token && userData) {
-      onLogin(token, JSON.parse(decodeURIComponent(userData)));
-      navigate('/ngo');
+      try {
+        onLogin(token, JSON.parse(decodeURIComponent(userData)));
+        navigate('/ngo');
+      } catch(e) {
+        navigate('/login');
+      }
     } else {
       navigate('/login');
     }
@@ -20,7 +24,7 @@ export default function AuthCallback({ onLogin }) {
 
   return (
     <div style={{padding: '50px', textAlign: 'center'}}>
-      <h1>🔄 Processing login...</h1>
+      <h1>🔄 Authenticating...</h1>
       <p>SmartPlate Map ready at <b>/map</b></p>
     </div>
   );
