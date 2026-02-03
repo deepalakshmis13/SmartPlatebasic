@@ -13,12 +13,42 @@
 
         <!-- Updated title -->
         <title>SmartPlate - Food Redistribution Platform</title>
+        
+        <!-- Leaflet CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <style>
+            #map { height: 400px; width: 100%; margin: 20px 0; }
+            #findNearestBtn { 
+                background: #28a745; color: white; 
+                border: none; padding: 10px 20px; 
+                border-radius: 5px; cursor: pointer; 
+                font-size: 16px; margin: 10px 0;
+            }
+            #findNearestBtn:hover { background: #218838; }
+            #matches { margin-top: 10px; }
+        </style>
     </head>
 
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
-        <div id="root"></div>
+        <div id="root">
+            <!-- SmartPlate Header -->
+            <h1 style="text-align: center; color: #333;">🍽️ SmartPlate - Food Redistribution</h1>
+            
+            <!-- Find Nearest Button -->
+            <div style="text-align: center;">
+                <button id="findNearestBtn">📍 Find Nearest Food Matches</button>
+                <div id="matches" style="margin-top: 15px;"></div>
+            </div>
+            
+            <!-- Leaflet Map -->
+            <div id="map"></div>
+        </div>
 
+        <!-- Leaflet JS -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        
+        <!-- Posthog Analytics (unchanged) -->
         <script>
             !(function (t, e) {
                 var o, n, p, r;
@@ -88,6 +118,130 @@
                 session_recording: {
                     recordCrossOriginIframes: true,
                 },
+            });
+        </script>
+
+        <!-- SmartPlate Map Logic -->
+        <script>
+            // Initialize map (Chennai center)
+            let map = L.map('map').setView([13.0827, 80.2707], 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Sample SmartPlate donations/NGOs (replace with your real data)
+            const locations = [
+                {name: '🍚 Donor: Rice 5kg', lat: 13.05, lng: 80.25, type: 'donor'},
+                {name: '🥛 Donor: Milk 10L', lat: 13.08, lng: 80.28, type: 'donor'},
+                {name: '🥗 NGO Shelter A', lat: 13.07, lng: 80.26, type: 'ngo'},
+                {name: '🍞 NGO Soup Kitchen', lat: 13.09, lng: 80.24, type: 'ngo'},
+                {name: '🍲 Donor: Veg Curry 3kg', lat: 13.06, lng: 80.27, type: 'donor'},
+            ];
+
+            // Haversine distance formula (km)
+            function getDistance(lat1, lng1, lat2, lng2) {
+                const R = 6371; // Earth radius in km
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLng = (lng2 - lng1) * Math.PI / 180;
+                const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            }
+
+            // Find nearest matches
+            function findNearest(userLat, userLng, maxDist = 20) {
+                const matches = locations
+                    .map(loc => {
+                        const dist = getDistance(userLat, userLng, loc.lat, loc.lng);
+                        return dist < maxDist ? { ...loc, dist: dist.toFixed(1) } : null;
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => a.dist - b.dist)
+                    .slice(0, 5); // Top 5 nearest
+
+                // Clear previous markers
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Marker) map.removeLayer(layer);
+                });
+
+                // Add markers for matches
+                matches.forEach((match, index) => {
+                    const color = match.type === 'donor' ? 'green' : 'orange';
+                    L.circleMarker([match.lat, match.lng], {
+                        radius: 8,
+                        fillColor: color,
+                        color: '#000',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    })
+                    .addTo(map)
+                    .bindPopup(`
+                        <b>${match.name}</b><br>
+                        📏 Distance: ${match.dist} km<br>
+                        <button onclick="claimMatch('${match.name}')" style="padding:5px 10px; background:#007bff; color:white; border:none; border-radius:3px; cursor:pointer;">Claim Food</button>
+                    `).openPopup();
+                });
+
+                // Show matches list
+                const matchesDiv = document.getElementById('matches');
+                matchesDiv.innerHTML = `
+                    <h3>📋 Nearest Matches Found: ${matches.length}</h3>
+                    ${matches.map((m, i) => 
+                        `<div style="padding:10px; border-left:4px solid ${m.type === 'donor' ? '#28a745' : '#ffc107'}; margin:5px 0; background:#f8f9fa;">
+                            ${i+1}. ${m.name} - ${m.dist}km 
+                            <button onclick="claimMatch('${m.name}')" style="float:right; padding:5px 10px; background:#28a745; color:white; border:none; border-radius:3px; cursor:pointer; font-size:12px;">Claim</button>
+                        </div>`
+                    ).join('')}
+                `;
+
+                // Fit map to show all matches
+                if (matches.length > 0) {
+                    const group = new L.featureGroup(matches.map(m => 
+                        L.circleMarker([m.lat, m.lng])
+                    ));
+                    map.fitBounds(group.getBounds().pad(0.2));
+                }
+            }
+
+            // Claim food function
+            function claimMatch(foodName) {
+                alert(`✅ Claimed: ${foodName}\nFood match confirmed! Check your dashboard.`);
+                posthog.capture('food_claimed', { food: foodName });
+            }
+
+            // Button click handler
+            document.getElementById('findNearestBtn').addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        pos => {
+                            findNearest(pos.coords.latitude, pos.coords.longitude);
+                            document.getElementById('findNearestBtn').textContent = '🔄 Searching...';
+                            setTimeout(() => {
+                                document.getElementById('findNearestBtn').textContent = '📍 Find Nearest Food Matches';
+                            }, 2000);
+                        },
+                        err => {
+                            alert('Please enable location access to find nearest food.');
+                            // Fallback to Chennai center
+                            findNearest(13.0827, 80.2707);
+                        },
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                    );
+                } else {
+                    alert('Geolocation not supported. Using Chennai center.');
+                    findNearest(13.0827, 80.2707);
+                }
+            });
+
+            // Add all locations as markers initially (faded)
+            locations.forEach(loc => {
+                L.circleMarker([loc.lat, loc.lng], {
+                    radius: 4,
+                    fillColor: loc.type === 'donor' ? '#90EE90' : '#FFD700',
+                    color: '#666',
+                    weight: 1,
+                    fillOpacity: 0.4
+                }).addTo(map).bindPopup(loc.name);
             });
         </script>
     </body>
