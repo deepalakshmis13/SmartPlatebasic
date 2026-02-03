@@ -12,7 +12,7 @@ export default function AuthCallback({ onLogin }) {
     
     if (token && userData) {
       onLogin(token, JSON.parse(decodeURIComponent(userData)));
-      navigate('/ngo'); // or user's role
+      navigate('/ngo');
     } else {
       navigate('/login');
     }
@@ -20,8 +20,8 @@ export default function AuthCallback({ onLogin }) {
 
   return (
     <div style={{padding: '50px', textAlign: 'center'}}>
-      <h1>🔄 Authenticating...</h1>
-      <p>Map feature ready at <b>/map</b></p>
+      <h1>🔄 Processing login...</h1>
+      <p>SmartPlate Map ready at <b>/map</b></p>
     </div>
   );
 }
